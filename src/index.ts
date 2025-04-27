@@ -27,7 +27,7 @@ interface QuizRoom {
   clients: Record<string, ClientData> // uuid -> ClientData
   questions: any[] // You can define a proper question structure
 }
-
+// move this to Creator
 const dummyQuestions = [
   {
     questionId: '1',
