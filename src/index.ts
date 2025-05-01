@@ -85,68 +85,65 @@ io.on('connection', (socket: Socket) => {
   })
 
   socket.on(
-    'launch-quiz',
-    ({ sessionId = SESSION_ID }: { sessionId: string }) => {
+    "launch-quiz",
+    ({ sessionId = SESSION_ID, questions }: { sessionId: string; questions: any[] }) => {
       quizRooms[sessionId] = {
         creator: socket.id,
         clients: {},
-        questions: [dummyQuestions],
-      }
-      socket.join(sessionId)
-      console.log(`Quiz created with sessionId: ${sessionId}`)
-      // send sessionId to creator
-      socket.emit('launch-quiz-response', {
-        status: 'success',
+        questions, // Store the questions received from the creator
+      };
+      socket.join(sessionId);
+      console.log(`Quiz created with sessionId: ${sessionId}`);
+
+      // Send sessionId back to the creator
+      socket.emit("launch-quiz-response", {
+        status: "success",
         sessionId,
-      })
+      });
     }
   )
 
-  socket.on('join-quiz', (sessionId: string) => {
-    const uuid = Math.floor(Math.random() * 1000).toString()
-    const displayName = 'Guest' + Math.floor(Math.random() * 1000)
-    const room = quizRooms[sessionId]
+  socket.on("join-quiz", (sessionId: string) => {
+    const uuid = Math.floor(Math.random() * 1000).toString();
+    const displayName = "Guest" + Math.floor(Math.random() * 1000);
+    const room = quizRooms[sessionId];
+
     if (!room) {
-      console.error(`Session ${sessionId} not found.`)
-      return
+      console.error(`Session ${sessionId} not found.`);
+      socket.emit("join-quiz-response", { status: "error", message: "Session not found" });
+      return;
     }
 
     room.clients[uuid] = {
       socketId: socket.id,
       displayName,
-    }
-    socket.join(sessionId)
-    console.log(`Client ${uuid} joined session ${sessionId}`)
-    // TODO: Send quiz data to participant device.
-    // dummy data
+    };
+    socket.join(sessionId);
+    console.log(`Client ${uuid} joined session ${sessionId}`);
+
+    // Send quiz data to the client
     const quizData = {
       sessionId,
-      questions: room.questions,
+      questions: room.questions, // Send the questions stored on the server
       clients: Object.values(room.clients).map((client) => ({
         uuid: client.socketId,
         displayName: client.displayName,
       })),
-    }
-    // once creator accepts the request, send quiz data to client
-    socket.emit('join-quiz-response', {
-      status: 'accepted',
+    };
+
+    socket.emit("join-quiz-response", {
+      status: "accepted",
       quizData,
       uuid,
-    })
+    });
 
-    console.log('sending user-joined event to creator:', room.creator)
-    if (!io.sockets.sockets.has(room.creator)) {
-      console.error(
-        `❌ Creator socket (${room.creator}) is not connected! Cannot emit user-joined.`
-      )
-      return
-    }
-    io.to(room.creator).emit('user-joined', {
+    // Notify the creator about the new client
+    io.to(room.creator).emit("user-joined", {
       uuid,
       displayName,
       quizData,
-    })
-  })
+    });
+  });
 
   socket.on(
     'next-question-from-creator',
@@ -155,11 +152,12 @@ io.on('connection', (socket: Socket) => {
       questionId,
       decryptionKey,
     }: {
-      sessionId: string
-      questionId: string
-      decryptionKey: string
+      sessionId: string;
+      questionId: string;
+      decryptionKey: string;
     }) => {
-      io.to(sessionId).emit('next-question', { questionId, decryptionKey })
+      console.log(`Broadcasting next question: ${questionId} with key: ${decryptionKey}`);
+      io.emit('next-question', { questionId, decryptionKey }); // Broadcast to all clients in the session
     }
   )
 
