@@ -146,20 +146,33 @@ io.on('connection', (socket: Socket) => {
       quizData,
     });
   });
-
-  socket.on(
+    socket.on(
     'next-question-from-creator',
     ({
       sessionId,
       questionId,
       decryptionKey,
+      timestamp, // Receive the timestamp from the client
+
     }: {
       sessionId: string;
       questionId: string;
       decryptionKey: string;
+      timestamp: number;
     }) => {
-      console.log(`Broadcasting next question: ${questionId} with key: ${decryptionKey}`);
-      io.emit('next-question', { questionId, decryptionKey }); // Broadcast to all clients in the session
+      
+      const receivedTime = Date.now(); // Current server time
+    const latency = receivedTime - timestamp; // Calculate latency
+    console.log(
+      `Received next-question-from-creator: Question ${questionId}, Key: ${decryptionKey}, Latency: ${latency}ms`
+    );
+
+    // Broadcast to all clients in the session
+    io.emit("next-question", {
+      questionId,
+      decryptionKey,
+      timestamp:receivedTime, // Pass the original timestamp to the clients
+    });
     }
   )
 
