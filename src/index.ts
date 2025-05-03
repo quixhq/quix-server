@@ -12,6 +12,8 @@ const io = new Server(5175, {
       'http://localhost:5174',
       'https://slidesyncmobile.web.app',
       'https://yashjawale.github.io',
+      'https://quix-client.vercel.app',
+      'https://quix-creator.vercel.app'
     ],
   },
 })
